@@ -2,7 +2,7 @@ import sys
 import numpy as np
 import cPickle as pkl
 import os
-#from params import *
+from params import *
 from prepare_data_for_hred import PrepareData
 start_symbol_index = 0
 end_symbol_index = 1
@@ -13,8 +13,11 @@ from annoy import AnnoyIndex
 import cPickle as pkl
 
 annoyIndex = None
+annoyPkl = None
 def load_image_representation(image_annoy_dir):
-    annoyInde = AnnoyIndex(4096, metric='euclidean')
+    global annoyIndex
+    global annoyPkl
+    annoyIndex = AnnoyIndex(4096, metric='euclidean')
     annoyIndex.load(image_annoy_dir+'/annoy.ann')
     annoyPkl = pkl.load(open(image_annoy_dir+'/ImageUrlToIndex.pkl'))
 
@@ -33,19 +36,19 @@ def get_dialog_dict(param, is_test = False):
     max_len = param['max_len']
     max_images = param['max_images']
     if 'test_state' in param:
-	test_state = param['test_state']
+        test_state = param['test_state']
     else:
-	test_state = None
+        test_state = None
     preparedata = PrepareData(max_utter, max_len, max_images, start_symbol_index, end_symbol_index, unk_symbol_index, pad_symbol_index, "text", cutoff=vocab_freq_cutoff)
     if os.path.isfile(vocab_file):
-	print 'found existing vocab file in '+str(vocab_file)+', ... reading from there'
+        print('found existing vocab file in '+str(vocab_file)+', ... reading from there')
     if not is_test:
-	    preparedata.prepare_data(train_dir_loc, vocab_file, vocab_stats_file, os.path.join(dump_dir_loc, "train"), train_data_file)
-	    preparedata.prepare_data(valid_dir_loc, vocab_file, vocab_stats_file, os.path.join(dump_dir_loc, "valid"), valid_data_file)
+        preparedata.prepare_data(train_dir_loc, vocab_file, vocab_stats_file, os.path.join(dump_dir_loc, "train"), train_data_file,isTrain=True)
+        preparedata.prepare_data(valid_dir_loc, vocab_file, vocab_stats_file, os.path.join(dump_dir_loc, "valid"), valid_data_file,isTrain=False)
     if test_state is not None:
-	    preparedata.prepare_data(test_dir_loc, vocab_file, vocab_stats_file, os.path.join(dump_dir_loc+"/test_data_file_state/", "test_"+test_state), test_data_file, False, True, test_state)
+        preparedata.prepare_data(test_dir_loc, vocab_file, vocab_stats_file, os.path.join(dump_dir_loc+"/test_data_file_state/", "test_"+test_state), test_data_file, False, True, test_state)
     else:
-	    preparedata.prepare_data(test_dir_loc, vocab_file, vocab_stats_file, os.path.join(dump_dir_loc, "test"), test_data_file, False, True, test_state)
+        preparedata.prepare_data(test_dir_loc, vocab_file, vocab_stats_file, os.path.join(dump_dir_loc, "test"), test_data_file, False, True, test_state)
 
 def get_weights(padded_target, batch_size, max_len, actual_seq_len):
     remaining_seq_len = max_len - actual_seq_len
@@ -90,9 +93,9 @@ def get_utter_seq_len(dialogue_text_dict, dialogue_image_dict, dialogue_target, 
     decoder_seq_len = [-1]*batch_size
     row, col  = np.where(padded_target==end_symbol_index)
     for row_i, col_i in zip(row, col):
-	decoder_seq_len[row_i] = col_i
+        decoder_seq_len[row_i] = col_i
     if -1 in decoder_seq_len:
-	raise Exception('cannot find end symbol in training dialogue')
+        raise Exception('cannot find end symbol in training dialogue')
     decoder_seq_len = np.asarray(decoder_seq_len)
     decoder_seq_len = decoder_seq_len + 1 #???????? check if decoder_seq_len=decoder_seq_len+1 is required or not (YES CHECKED WILL BE REQUIRED)
     #decoder_seq_len is of dimension batch_size
@@ -109,11 +112,14 @@ def get_batch_data(max_len, max_images, image_rep_size, max_utter, batch_size, d
     data_dict = np.asarray(data_dict)
     #converting data dict from a multidimensional list to a numpy matrix in order to carry out the operations below
     batch_text_dict = data_dict[:,0]
+    for i in range(len(batch_text_dict)):
+        batch_text_dict[i] = batch_text_dict[i][-max_utter:]
     #batch_text_dict is a multidimensional list integers (word ids) of dimension batch_size * max_utter * max_len
     
     batch_image_dict = data_dict[:,1]
     #batch_image_dict is a multidimensional list of strings of dimension batch_size * max_utter * max_images
-    
+    for i in range(len(batch_image_dict)):
+        batch_image_dict[i] = batch_image_dict[i][-max_utter:]
     batch_target = data_dict[:,2]
     #batch_target is a list of list of words ids of dimension batch_size * max_len
     if len(data_dict)%batch_size!=0:
@@ -146,12 +152,12 @@ def get_batch_data(max_len, max_images, image_rep_size, max_utter, batch_size, d
 def get_image_representation(image_filename, image_rep_size):
     image_filename = image_filename.strip()	
     if image_filename=="":
-	return [0.]*image_rep_size
+        return [0.]*image_rep_size
     #FOR ANNOY BASED INDEX
     try:	
-	return annoyIndex.get_item_vector(annoyPkl[image_filename]) 
+        return annoyIndex.get_item_vector(annoyPkl[image_filename])
     except:
-	return [0.]*image_rep_size			
+        return [0.]*image_rep_size
 
     #FOR SAMPLE INDEX
     #return sample_image_index[image_filename]
@@ -217,6 +223,6 @@ if __name__=="__main__":
     max_images = param['max_images']
     preparedata = PrepareData(max_utter, max_len, max_images, start_symbol_index, end_symbol_index, unk_symbol_index, pad_symbol_index, "text", cutoff=vocab_freq_cutoff)
     if os.path.isfile(vocab_file):
-        print 'found existing vocab file in '+str(vocab_file)+', ... reading from there'  
+        print('found existing vocab file in '+str(vocab_file)+', ... reading from there')
     preparedata.prepare_data(test_dir_loc, vocab_file, vocab_stats_file, os.path.join(dump_dir_loc, "test_smallest"), test_data_file)
 

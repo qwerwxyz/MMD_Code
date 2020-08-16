@@ -15,7 +15,7 @@ class PrepareData():
 		logging.basicConfig(level=logging.INFO)
 		self.logger = logging.getLogger('prepare_data_for_hred')
 		self.max_utter = max_utter
- 		self.max_len = max_len
+		self.max_len = max_len
 		self.max_images = max_images
 		self.task_type = task_type
 		self.unknown_word_id = unk_symbol_index
@@ -59,7 +59,7 @@ class PrepareData():
 			self.dialogue_context_image_task_image_file = self.output+"_context_image_task_image.txt"
 			self.dialogue_target_text_task_image_file = self.output+"_target_text_task_image.txt"	
 		if os.path.isfile(vocab_file):
-			print 'found pre-existing vocab file ... reusing it'
+			print('found pre-existing vocab file ... reusing it')
 			create_vocab = False
 		else:
 			create_vocab = True
@@ -99,10 +99,15 @@ class PrepareData():
 			if os.path.isfile(self.dialogue_target_image_task_image_file):
 				os.remove(self.dialogue_target_image_task_image_file)		
 		if create_vocab:
-	                self.word_counter = Counter()
-                else:
-                        self.word_counter = None
-		for file in os.listdir(json_dir):			
+			self.word_counter = Counter()
+		else:
+			self.word_counter = None
+		count = 0
+		for file in os.listdir(json_dir):
+			if is_test is False:
+				count += 1
+				if count == 50000:
+					break
 			if file.endswith('.json'):
 				self.read_jsonfile(os.path.join(json_dir, file), create_vocab, is_test, test_state)
 
@@ -130,19 +135,19 @@ class PrepareData():
 					rolledout_dialogue.append({"images":[image],"nlg":None})
 		return rolledout_dialogue
 	
-        def pad_or_clip_utterance(self, utterance):
-         	if len(utterance)>(self.max_len-2):
+	def pad_or_clip_utterance(self, utterance):
+		if len(utterance)>(self.max_len-2):
 			utterance = utterance[:(self.max_len-2)]
 			utterance.append(self.end_word_symbol)
-                        utterance.insert(0, self.start_word_symbol)
+			utterance.insert(0, self.start_word_symbol)
 		elif len(utterance)<(self.max_len-2):
 			pad_length = self.max_len - 2 - len(utterance)
 			utterance.append(self.end_word_symbol)
-                        utterance.insert(0, self.start_word_symbol)
+			utterance.insert(0, self.start_word_symbol)
 			utterance = utterance+[self.pad_symbol]*pad_length
 		else:
 			utterance.append(self.end_word_symbol)
-                        utterance.insert(0, self.start_word_symbol)		
+			utterance.insert(0, self.start_word_symbol)
 		return utterance
 
 	def pad_or_clip_images(self, images):
@@ -173,21 +178,30 @@ class PrepareData():
 			dialogue_target_image_task_image = []
 		dialogue_instance_multimodal = []
 		for utterances in dialogue:
-		   if utterances is None or len(utterances)==0:
-		   	continue	
- 		   if not isinstance(utterances, list):
-		     utterances = [utterances]
-                   for utterance in utterances:
-			if utterance is None:
-				continue	
+			if utterances is None or len(utterances)==0:
+				continue
+			if not isinstance(utterances, list):
+				utterances = [utterances]
+			for utterance in utterances:
+				if utterance is None:
+					continue
 			if not isinstance(utterance, dict):
-				print 'impossible ', utterance, json_file
+				print('impossible ', utterance, json_file)
 				raise Exception('error in reading dialogue json')
-				continue 
 			speaker = utterance['speaker']
 			if 'images' not in utterance['utterance'] or 'nlg' not in utterance['utterance']:
 				continue
 			images = utterance['utterance']['images']
+			if isinstance(images, list) :
+				if isinstance(images, list) :
+					if len(images) == 0:
+						images = None
+					else:
+						res = []
+						for val in images:
+							if val is not None:
+								res.append(val)
+						images = res
 			nlg = utterance['utterance']['nlg']
 			if nlg is not None:
 				nlg = nlg.strip().encode('utf-8')
@@ -197,7 +211,18 @@ class PrepareData():
 			try:
 				nlg_words = nltk.word_tokenize(nlg)
 			except:
-				nlg_words = nlg.split(" ")	
+				nlg_words = nlg.split(" ")
+			if len(nlg_words[-1]) > 1:
+				if nlg_words[-1] is not '.' and nlg_words[-1] is not '':
+					if not nlg_words[-1][-1].isalpha():
+						j = 0
+						for i in nlg_words[-1]:
+							if not i.isalpha() and not i.isalnum():
+								break
+							j += 1
+						nlg_words.append(nlg_words[-1][j:])
+						nlg_words[-2] = nlg_words[-2][:j]
+						print(nlg_words[-3:])
 			if create_vocab:
 				self.word_counter.update(nlg_words)
 			dialogue_instance_multimodal.append({'images': images, 'nlg':nlg})
@@ -241,9 +266,9 @@ class PrepareData():
 						dialogue_context_image_task_image.append(dialogue_instance_context_image_task_image)
 						dialogue_target_image_task_image.append(image)		
 			if 'question-type' in utterance and test_state is not None:
-                                last_question_type = utterance['question-type']
+				last_question_type = utterance['question-type']
 			elif speaker!="system":
-                                last_question_type = None
+				last_question_type = None
 		if self.task_type=="text":				
 			with open(self.dialogue_context_text_task_text_file, 'a') as fp:
 				for dialogue_instance in dialogue_context_text_task_text:
@@ -261,33 +286,33 @@ class PrepareData():
 							image_context = image_context+"|"+",".join(images)
 					#print image_context
 					if len(image_context.split("|"))!=self.max_utter:
-                                                raise Exception('len(dialogue_instance_image_context)!=self.max_utter')	
-	 				fp.write(image_context+'\n')
-		 	with open(self.dialogue_target_text_task_text_file, 'a') as fp:
-		 		for dialogue_instance in dialogue_target_text_task_text:
-	 				fp.write(dialogue_instance+'\n')
+						raise Exception('len(dialogue_instance_image_context)!=self.max_utter')
+					fp.write(image_context+'\n')
+			with open(self.dialogue_target_text_task_text_file, 'a') as fp:
+				for dialogue_instance in dialogue_target_text_task_text:
+					fp.write(dialogue_instance+'\n')
 		if self.task_type=="image":
-		 	with open(self.dialogue_context_text_task_image_file, 'a') as fp:
-		 		for dialogue_instance in dialogue_context_text_task_image:
-	 				dialogue_instance = '|'.join(dialogue_instance)
-	 				fp.write(dialogue_instance+'\n')
-		 	with open(self.dialogue_context_image_task_image_file, 'a') as fp:
-		 		for dialogue_instance in dialogue_context_image_task_image:
+			with open(self.dialogue_context_text_task_image_file, 'a') as fp:
+				for dialogue_instance in dialogue_context_text_task_image:
+					dialogue_instance = '|'.join(dialogue_instance)
+					fp.write(dialogue_instance+'\n')
+			with open(self.dialogue_context_image_task_image_file, 'a') as fp:
+				for dialogue_instance in dialogue_context_image_task_image:
 					image_context = None
 					if len(dialogue_instance)!=self.max_utter:
-                                                raise Exception('len(dialogue_instance_image_context)!=self.max_utter')
-                                        for images in dialogue_instance:
-                                                if image_context is None:
-                                                        image_context  = ",".join(images)
-                                                else:
-                                                        image_context = image_context+"|"+",".join(images)
+						raise Exception('len(dialogue_instance_image_context)!=self.max_utter')
+					for images in dialogue_instance:
+							if image_context is None:
+								image_context  = ",".join(images)
+							else:
+								image_context = image_context+"|"+",".join(images)
 					if len(image_context.split("|"))!=self.max_utter:
-                                                raise Exception('len(dialogue_instance_image_context)!=self.max_utter')
-                                        fp.write(image_context+'\n')
-		 	with open(self.dialogue_target_image_task_image_file, 'a') as fp:
-		 		for dialogue_instance in dialogue_target_image_task_image:
-	 				fp.write(dialogue_instance+'\n')
-	 				
+						raise Exception('len(dialogue_instance_image_context)!=self.max_utter')
+					fp.write(image_context+'\n')
+			with open(self.dialogue_target_image_task_image_file, 'a') as fp:
+				for dialogue_instance in dialogue_target_image_task_image:
+					fp.write(dialogue_instance+'\n')
+
 
 	def read_vocab(self):
 		assert os.path.isfile(self.vocab_file)
@@ -345,18 +370,29 @@ class PrepareData():
 				#print ''
 				num_instances += 1
 				if num_instances%10000==0:
-					print 'finished ',num_instances, ' instances'
+					print('finished ',num_instances, ' instances')
 				utterances = text_context.split('|')
 				binarized_text_context = []
 				for utterance in utterances:
+					utterance = utterance.strip()
 					try:
 						utterance_words = nltk.word_tokenize(utterance)
 					except:
 						utterance_words = utterance.split(' ')
+					if len(utterance_words[-1]) > 1:
+						if utterance_words[-1] is not '.' and utterance_words[-1] is not '':
+							if not utterance_words[-1][-1].isalpha():
+								j = 0
+								for i in utterance_words[-1]:
+									if not i.isalpha() and not i.isalnum():
+										break
+									j += 1
+								utterance_words.append(utterance_words[-1][j:])
+								utterance_words[-2] = utterance_words[-2][:j]
 					utterance_words = self.pad_or_clip_utterance(utterance_words)
 					if self.end_word_symbol not in utterance_words:
-						print 'utterance ',utterance
-						print 'utterance words ',utterance_words 
+						print('utterance ',utterance)
+						print('utterance words ',utterance_words)
 						raise Exception('utterance does not have end symbol')
 					utterance_word_ids = []
 					for word in utterance_words:
@@ -365,7 +401,7 @@ class PrepareData():
 						unknowns += 1 * (word_id == self.unknown_word_id)
 						freqs[word_id] += 1
 					if self.end_word_id not in utterance_word_ids:
-						print 'utterance word ids ', utterance_word_ids
+						print('utterance word ids ', utterance_word_ids)
 						raise Exception('utterance word ids does not have end word id')	
 					num_terms += len(utterance_words)
 
@@ -383,14 +419,25 @@ class PrepareData():
 				binarized_target = None
 				if task_type=="text":
 					utterance = target
+					utterance = utterance.strip()
 					try:
 						utterance_words = nltk.word_tokenize(utterance)
 					except:
-						utterance_words = utterance.split(' ')	
+						utterance_words = utterance.split(' ')
+					if len(utterance_words[-1]) > 1:
+						if utterance_words[-1] is not '.' and utterance_words[-1] is not '':
+							if not utterance_words[-1][-1].isalpha():
+								j = 0
+								for i in utterance_words[-1]:
+									if not i.isalpha() and not i.isalnum():
+										break
+									j += 1
+								utterance_words.append(utterance_words[-1][j:])
+								utterance_words[-2] = utterance_words[-2][:j]
 					utterance_words = self.pad_or_clip_utterance(utterance_words)
 					if self.end_word_symbol not in utterance_words:
-                                                print 'utterance ',utterance
-                                                print 'utterance words ',utterance_words
+						print('utterance ',utterance)
+						print('utterance words ',utterance_words)
 						raise Exception('utterance does not have end symbol')
 					utterance_word_ids = []
 					for word in utterance_words:
@@ -399,8 +446,8 @@ class PrepareData():
 						unknowns += 1 * (word_id == self.unknown_word_id)
 						freqs[word_id] += 1
 					if self.end_word_id not in utterance_word_ids:
-                                                print 'utterance word ids ', utterance_word_ids
-                                                raise Exception('utterance word ids does not have end word id') 	
+						print('utterance word ids ', utterance_word_ids)
+						raise Exception('utterance word ids does not have end word id')
 					num_terms += len(utterance_words)
 
 					unique_word_indices = set(utterance_word_ids)
@@ -419,7 +466,7 @@ class PrepareData():
 			self.safe_pickle([(word, word_id, freqs[word_id], df[word_id]) for word, word_id in self.vocab_dict.items()], self.vocab_stats_file)
 			inverted_vocab_dict = {word_id:word for word, word_id in self.vocab_dict.iteritems()}	
 			self.safe_pickle(inverted_vocab_dict, self.vocab_file)
-			print 'dumped vocab in ', self.vocab_file
+			print('dumped vocab in ', self.vocab_file)
 		self.logger.info("Number of unknowns %d" % unknowns)
 		self.logger.info("Number of terms %d" % num_terms)
 		self.logger.info("Mean document length %f" % float(sum(map(len, binarized_corpus))/len(binarized_corpus)))

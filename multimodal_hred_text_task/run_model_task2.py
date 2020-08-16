@@ -66,7 +66,7 @@ def perform_test(sess, model, saver, model_file, get_pred_sentence, param, logit
     predicted_sentence = []
     test_loss = 0
     n_batches = len(test_data)/param['batch_size']
-    test_text_targets = load_valid_test_target(param['test_data_file'])
+    test_text_targets = read_data_task1.load_valid_test_target(param['test_data_file'])
     for i in range(n_batches):
         batch_dict = test_data[i*param['batch_size']:(i+1)*param['batch_size']]
         test_op, sum_batch_loss = get_test_op(sess, model, batch_dict, param, logits, losses)
@@ -301,11 +301,11 @@ def run_training(param):
 
 def main():
     import os
-    os.environ["CUDA_VISIBLE_DEVICES"] = "2"
-    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.25)
+    os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.6)
     sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
-    data_dir = '../../../../../home_export/wxy/mmd_dataset/v1'
-    param = get_params(data_dir,'../../../../../home_export/wxy/mmd_output/Target_Model_text_k6_not_a/')
+    data_dir = '../../../../../home_export/wxy/mmd_dataset/v2'
+    param = get_params(data_dir,'../../../../../home_export/wxy/mmd_output/Target_Model_k8_text_not_a/')
     if os.path.exists(param['train_data_file']) and os.path.exists(param['valid_data_file']) and os.path.exists(param['test_data_file']):
         print 'dictionary already exists'
         sys.stdout.flush()

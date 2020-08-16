@@ -74,12 +74,41 @@ from tensorflow.python.ops import variable_scope
 from tensorflow.python.util import nest
 import tensorflow
 import sys
-from cStringIO import StringIO
+from io import StringIO
 
 
 # TODO(ebrevdo): Remove once _linear is fully deprecated.
 linear = rnn_cell._linear  # pylint: disable=protected-access
 
+
+# def linear(input_, output_size, scope=None):
+#     '''
+#     Linear map: output[k] = sum_i(Matrix[k, i] * args[i] ) + Bias[k]
+#     Args:
+#         args: a tensor or a list of 2D, batch x n, Tensors.
+#     output_size: int, second dimension of W[i].
+#     scope: VariableScope for the created subgraph; defaults to "Linear".
+#     Returns:
+#     A 2D Tensor with shape [batch x output_size] equal to
+#     sum_i(args[i] * W[i]), where W[i]s are newly created matrices.
+#     Raises:
+#     ValueError: if some of the arguments has unspecified or wrong shape.
+#     '''
+#
+#     shape = input_.get_shape().as_list()
+#     if len(shape) != 2:
+#         raise ValueError("Linear is expecting 2D arguments: %s" % str(shape))
+#     if not shape[1]:
+#         raise ValueError("Linear expects shape[1] of arguments: %s" % str(shape))
+#     input_size = shape[1]
+#
+#     # Now the computation.
+#     with tensorflow.variable_scope(scope or "SimpleLinear"):
+#         matrix = tensorflow.get_variable("Matrix", [output_size, input_size], dtype=input_.dtype)
+#         bias_term = tensorflow.get_variable("Bias", [output_size], dtype=input_.dtype)
+#
+#     return tensorflow.matmul(input_, tensorflow.transpose(matrix)) + bias_term
+#
 
 def _extract_argmax_and_embed(embedding, output_projection=None,
                               update_embedding=True):

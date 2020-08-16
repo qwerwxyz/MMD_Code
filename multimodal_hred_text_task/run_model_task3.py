@@ -9,8 +9,8 @@ import os.path
 import numpy as np
 from params import *
 import nltk
-from read_data_task_6 import *
-from hierarchy_model_text_not_a import *
+from read_data_task1 import *
+from hierarchy_model_text import *
 import tensorflow as tf
 
 def feeding_dict(model, inputs_text, inputs_image, target_text, decoder_text_inputs, text_weights, feed_prev):
@@ -66,7 +66,7 @@ def perform_test(sess, model, saver, model_file, get_pred_sentence, param, logit
     predicted_sentence = []
     test_loss = 0
     n_batches = len(test_data)/param['batch_size']
-    test_text_targets = load_valid_test_target(param['test_data_file'])
+    test_text_targets = read_data_task1.load_valid_test_target(param['test_data_file'])
     for i in range(n_batches):
         batch_dict = test_data[i*param['batch_size']:(i+1)*param['batch_size']]
         test_op, sum_batch_loss = get_test_op(sess, model, batch_dict, param, logits, losses)
@@ -300,12 +300,11 @@ def run_training(param):
     
 
 def main():
-    import os
-    os.environ["CUDA_VISIBLE_DEVICES"] = "2"
-    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.25)
-    sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
+    config = tf.ConfigProto() 
+    config.gpu_options.per_process_gpu_memory_fraction = 0.10
+    session = tf.Session(config=config)
     data_dir = '../../../../../home_export/wxy/mmd_dataset/v1'
-    param = get_params(data_dir,'../../../../../home_export/wxy/mmd_output/Target_Model_text_k6_not_a/')
+    param = get_params(data_dir,'../../../../../home_export/wxy/mmd_output/Target_Model_text/')
     if os.path.exists(param['train_data_file']) and os.path.exists(param['valid_data_file']) and os.path.exists(param['test_data_file']):
         print 'dictionary already exists'
         sys.stdout.flush()
